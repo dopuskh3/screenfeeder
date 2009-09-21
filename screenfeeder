@@ -1,0 +1,188 @@
+#!/usr/bin/env python
+# vim:set fileencoding=utf-8
+
+import os
+import sys
+import time
+import feedparser 
+import datetime
+import random
+import codecs
+import shutil
+import signal
+
+feeds = [
+    'http://www.openframeworks.cc/forum/rss.php',
+    'http://www.lemonde.fr/rss/une.xml', 
+    'http://linuxfr.org/backend/news/rss20.rss'
+]
+screen_feeder = None
+
+class screenFeeder:
+    def __init__(self, feeds_file, uri_file,  update_interval=60, max_len = 40): 
+        #initialize configuration 
+        self.feedUriList = None
+        self.feeds = []
+        self.updateInterval = datetime.timedelta(seconds = update_interval)
+        self.maxLen = max_len
+        self.charStep = 1
+        self.lineInterval = 10
+        self.endStr = '>'
+        self.lastUpdated = None
+        self.currentUri = None
+        self.uriFile = uri_file
+        self.feedsFile = feeds_file
+        self.reloadFlag = False
+        
+    def initialize(self):
+        try:
+            f = open(self.feedsFile, "r")
+            self.feedUriList = f.readlines()
+            f.close()
+        except Exception, e:
+            print "Cannot parse feed file %s (%s)"%(self.feedsFile, str(e))
+            return 
+
+        #try:
+        #    os.unlink(self.fifoPath)
+        #except:
+        #    pass
+        #try:
+        #    # os.mkfifo(self.fifoPath)
+        #    self.fifoFd = codecs.open(self.fifoPath, "w", "utf-8")
+        #    print "Opened fifo"
+        #except Exception, e:
+        #    print "Cannot create fifo (%s)"%str(e)
+
+    def reload(self):
+        self.reloadFlag = True
+
+    def cycle(self):
+        # cycle throught updating/displaying 
+        while True:
+            if self.reloadFlag == True:
+                self.initialize()
+                self.lastUpdated = None
+                self.reloadFlag = False
+
+            self.checkForUpdate()
+            feedIndex = random.randrange(len(self.feeds)-1)
+            feedEntryIndex = random.randrange(len(self.feeds[feedIndex].entries)-1)
+            self.currentUri = self.feeds[feedIndex].entries[feedEntryIndex].links[0].href
+            self.writeUriToFile()
+            self.printLine(self.feeds[feedIndex].entries[feedEntryIndex].title)
+    
+    def writeUriToFile(self): 
+        if self.currentUri:
+            fd = open(self.uriFile, "w+")
+            fd.write(self.currentUri)
+            fd.close()
+        
+    def checkForUpdate(self):
+        # check if it's time for update
+        if not self.lastUpdated:
+            self.updateFeeds()
+        if datetime.datetime.now() > self.lastUpdated + self.updateInterval: 
+            self.updateFeeds()
+
+    def updateFeeds(self):
+        # update feeds
+        self.feeds = []
+        for feedUri in self.feedUriList:
+            self.printS('Updating %s...'%feedUri)
+            try:
+                self.feeds.append(feedparser.parse(feedUri))
+            except:
+                print "Error parsing feed %s"%feedUri
+                continue
+        self.lastUpdated = datetime.datetime.now()
+
+    def printLine(self, line):
+        # print a rolling line 
+        line = " "*self.maxLen + line
+        if len(line) >= (self.maxLen - len(self.endStr)): 
+            steps = len(line) - self.maxLen # - len(self.endStr)
+            steptime  = (float(self.lineInterval)/float(steps))
+        else:
+            steptime = self.lineInterval
+            steps = 0
+        for i in range(0, steps+1):
+            self.printS(line[i:])
+            time.sleep(steptime)
+
+    def printS(self, s): 
+        # truncate line 
+        if len(s) > self.maxLen:
+            s=s[:self.maxLen-(len(self.endStr))]+self.endStr
+        print s
+        sys.stdout.flush()
+        return s
+
+
+def usage(name):
+    
+    print """
+Usage %s 
+    read <fifo_file> <feed_file> <url_file>
+    open <uri_file>
+    """%name
+
+
+def reloadHandler(signum, frame):
+    global screen_feeder
+    try:
+        screen_feeder.reload()
+    except:
+        pass
+
+
+if __name__ == "__main__":
+
+    if sys.stdout.encoding is None:
+        import locale
+        import codecs
+
+        encoding = locale.getpreferredencoding() # or just "utf-8"
+        streamwriter = codecs.lookup(encoding).streamwriter
+        sys.stdout = streamwriter(sys.stdout)
+
+
+    signal.signal(signal.SIGHUP, reloadHandler)
+
+    homedir = os.getenv("HOME")
+    if not homedir:
+        sys.exit(1)
+    
+    prefdir = os.path.join(homedir, ".screenfeeder")
+    if not (os.path.isdir(prefdir) and os.path.exists(prefdir)):
+        try:
+            os.makedirs(os.path.join(prefdir))
+        except Exception,e:
+            print "Cannot create ~/.screenfeeder (%s)"%str(e)
+            sys.exit(1)
+    
+    pid = os.getpid()
+    ppid = os.getppid()
+    print "PID IS %d"%pid
+    print "ppid is %d"%ppid
+    # cpid = os.fork()
+    #if cpid == 0:
+    urlfile=os.path.join(prefdir, "currenturl-%d"%ppid)
+    print "Url file is %s"%urlfile
+    if len(sys.argv) == 2:
+        feeds = sys.argv[1]
+        screen_feeder = screenFeeder(feeds,urlfile)
+        screen_feeder.initialize()
+        screen_feeder.cycle()
+    elif len(sys.argv) == 1:
+        import webbrowser
+        try:
+            f = open(urlfile)
+            url = f.readlines()
+            if len(url)>=1:
+                webbrowser.open(url[0])
+        except Exception, e:
+            print "Cannot open url (%s)"%str(e)
+    
+
+
