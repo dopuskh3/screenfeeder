@@ -119,8 +119,7 @@ def usage(name):
     
     print """
 Usage %s 
-    read <fifo_file> <feed_file> <url_file>
-    open <uri_file>
+    
     """%name
 
 
