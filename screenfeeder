@@ -119,7 +119,6 @@ def usage(name):
     
     print """
 Usage %s 
-    
     """%name
 
 
@@ -156,12 +155,7 @@ if __name__ == "__main__":
             print "Cannot create ~/.screenfeeder (%s)"%str(e)
             sys.exit(1)
     
-    pid = os.getpid()
     ppid = os.getppid()
-    print "PID IS %d"%pid
-    print "ppid is %d"%ppid
-    # cpid = os.fork()
-    #if cpid == 0:
     urlfile=os.path.join(prefdir, "currenturl-%d"%ppid)
     print "Url file is %s"%urlfile
     if len(sys.argv) == 2:
