@@ -11,11 +11,7 @@ import codecs
 import shutil
 import signal
 
-feeds = [
-    'http://www.openframeworks.cc/forum/rss.php',
-    'http://www.lemonde.fr/rss/une.xml', 
-    'http://linuxfr.org/backend/news/rss20.rss'
-]
+
 screen_feeder = None
 
 class screenFeeder:
