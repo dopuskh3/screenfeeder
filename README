@@ -38,10 +38,10 @@ How does it works ?
 -------------------
 
 When using GNU screen the screenfeeder script will be launched as the #42 backtick. A backtick is a configuration
-directive witch allows to launch a command an display it in the hardstatus line updating it each time a new line
-character is emited by the backtick command. 
+directive witch allows to launch a command and display it in the hardstatus line updating it each time a new line
+character is emitted by the backtick command. 
 
-When launching screenfeeder without argument it will gess the parent process id and find the file witch stores the
+When launching screenfeeder without argument it will guess the parent process id and find the file wich stores the
 current feed item url. It will launch a webbrowser to this url.
 
 
