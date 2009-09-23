@@ -95,7 +95,7 @@ class screenFeeder:
 
     def printLine(self, line):
         # print a rolling line 
-        line = " "*self.maxLen + line
+        line = " "*self.maxLen + line + " "*self.maxLen
         if len(line) >= (self.maxLen - len(self.endStr)): 
             steps = len(line) - self.maxLen # - len(self.endStr)
             steptime  = (float(self.lineInterval)/float(steps))
